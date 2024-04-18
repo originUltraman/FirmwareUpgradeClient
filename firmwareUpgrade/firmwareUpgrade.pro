@@ -1,6 +1,7 @@
 QT -= gui
 QT += core
 QT += network
+QT += xml
 
 CONFIG += c++11 console
 CONFIG -= app_bundle
@@ -18,11 +19,14 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         crc/crc.cpp \
+        dir.cpp \
         firmwareupgrade.cpp \
         main.cpp \
         protocal/utility.cpp \
         tftp/tftp.cpp \
-        thread/thread.cpp \
+        thread/mythread.cpp \
+        thread/odownloadthread.cpp \
+        thread/statusfilercvthread.cpp \
         thread/uploadthread.cpp
 
 # Default rules for deployment.
@@ -33,11 +37,17 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 HEADERS += \
     crc/crc.h \
     device/device.h \
+    dir.h \
     firmwareupgrade.h \
+    globalDefine.h \
+    inputListener.h \
+    protocal/file_define.h \
     protocal/protocal.h \
     protocal/utility.h \
     singleton/singleton.h \
     tftp/tftp.h \
     tftp/tftprequest.h \
-    thread/thread.h \
+    thread/mythread.h \
+    thread/odownloadthread.h \
+    thread/statusfilercvthread.h \
     thread/uploadthread.h

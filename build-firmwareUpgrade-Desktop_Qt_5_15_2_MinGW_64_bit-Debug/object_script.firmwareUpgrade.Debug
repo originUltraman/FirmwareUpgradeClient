@@ -1,0 +1,16 @@
+debug/crc.o
+debug/dir.o
+debug/firmwareupgrade.o
+debug/main.o
+debug/utility.o
+debug/tftp.o
+debug/mythread.o
+debug/odownloadthread.o
+debug/statusfilercvthread.o
+debug/uploadthread.o
+debug/moc_firmwareupgrade.o
+debug/moc_inputListener.o
+debug/moc_mythread.o
+debug/moc_odownloadthread.o
+debug/moc_statusfilercvthread.o
+debug/moc_uploadthread.o

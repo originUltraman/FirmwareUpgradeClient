@@ -1,0 +1,16 @@
+release/crc.o
+release/dir.o
+release/firmwareupgrade.o
+release/main.o
+release/utility.o
+release/tftp.o
+release/mythread.o
+release/odownloadthread.o
+release/statusfilercvthread.o
+release/uploadthread.o
+release/moc_firmwareupgrade.o
+release/moc_inputListener.o
+release/moc_mythread.o
+release/moc_odownloadthread.o
+release/moc_statusfilercvthread.o
+release/moc_uploadthread.o
