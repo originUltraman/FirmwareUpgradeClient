@@ -16,6 +16,7 @@ unsigned short maxRetransmit_default;
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
+//test
     FirmwareUpgrade fupgrade;
     return a.exec();
 }
