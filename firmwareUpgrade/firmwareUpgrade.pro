@@ -3,6 +3,14 @@ QT += core
 QT += network
 QT += xml
 
+
+
+LIBS += -L$$PWD/spdlog/build/ -lspdlog
+
+INCLUDEPATH += $$PWD/spdlog/include
+DEPENDPATH += $$PWD/spdlog/include
+PRE_TARGETDEPS += $$PWD/spdlog/build/libspdlog.a
+
 CONFIG += c++11 console
 CONFIG -= app_bundle
 
@@ -11,6 +19,9 @@ CONFIG -= app_bundle
 # depend on your compiler). Please consult the documentation of the
 # deprecated API in order to know how to port your code away from it.
 DEFINES += QT_DEPRECATED_WARNINGS
+DEFINES += QT_DEPRECATED_WARNINGS
+DEFINES += SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE
+DEFINES += SPDLOG_COMPILED_LIB
 
 # You can also make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -22,8 +33,11 @@ SOURCES += \
         dir.cpp \
         firmwareupgrade.cpp \
         main.cpp \
+        mylog.cpp \
         protocal/utility.cpp \
         tftp/tftp.cpp \
+        thread/findthread.cpp \
+        thread/menuthread.cpp \
         thread/mythread.cpp \
         thread/odownloadthread.cpp \
         thread/statusfilercvthread.cpp \
@@ -39,14 +53,18 @@ HEADERS += \
     device/device.h \
     dir.h \
     firmwareupgrade.h \
+    global.h \
     globalDefine.h \
     inputListener.h \
+    mylog.h \
     protocal/file_define.h \
     protocal/protocal.h \
     protocal/utility.h \
     singleton/singleton.h \
     tftp/tftp.h \
     tftp/tftprequest.h \
+    thread/findthread.h \
+    thread/menuthread.h \
     thread/mythread.h \
     thread/odownloadthread.h \
     thread/statusfilercvthread.h \

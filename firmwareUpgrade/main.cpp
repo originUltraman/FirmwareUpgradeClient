@@ -17,6 +17,7 @@ size_t state_file_send_interval = 10000;
 
 
 
+
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);

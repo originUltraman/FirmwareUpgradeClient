@@ -6,6 +6,8 @@
 #include <QTimer>
 #include <memory>
 #include <QThreadPool>
+class MenuThread;
+class FindThread;
 class FirmwareUpgrade : public QObject
 {
     Q_OBJECT
@@ -47,7 +49,11 @@ public:
     }
 private:
     std::shared_ptr<QTimer> timer = nullptr;
+    std::shared_ptr<MenuThread> menuThread = nullptr;
     QThreadPool pool;
+
+private slots:
+    void onRecvdMenuOp(int op, std::initializer_list<std::string>);
 };
 
 #endif // FIRMWAREUPGRADE_H
