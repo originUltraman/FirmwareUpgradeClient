@@ -1,9 +1,9 @@
 #include "thread.h"
 
-thread::thread(const Device *device, TftpRequest *tftpRequest, QObject *parent):
+thread::thread(const Device *device, QObject *parent):
     QObject(nullptr),
     device(device),
-    tftpRequest(tftpRequest){
+    logger(Singleton<spdlog::logger>::Instance()){
     //创建一个虚拟连接，只接受目的设备端发来的信息
     QDir tmpDir(QDir::currentPath() + "/" + device->getName() + "_" + device->getHostAddress());
     if(!tmpDir.exists()){
@@ -15,46 +15,20 @@ thread::thread(const Device *device, TftpRequest *tftpRequest, QObject *parent):
 }
 
 thread::~thread(){
-    if(tftpRequest) delete tftpRequest;
-    qDebug() << "MyThread的析构函数\n";
+    //if(tftpRequest) delete tftpRequest;
+    //qDebug() << "MyThread的析构函数\n";
 }
 
 const QHostAddress thread::getHostAddress() const{
     return QHostAddress(this->device->getHostAddress());
 }
 
-TftpRequest *thread::getTftpRequest() const{
-    return tftpRequest;
-}
-
-const Device *thread::getDevice() const{
+const Device*thread::getDevice() const{
     return device;
 }
 
-void thread::waitStatusFileRcved()
+void thread::addTftpRequest(TftpRequest &&tftpRequest)
 {
-    conditionMutex.lock();
-    while(statusFileRcved == false){
-        statusFileRcvedConditon.wait(&conditionMutex);
-    }
-    conditionMutex.unlock();
+    tftpRequests.enqueue(std::forward<TftpRequest>(tftpRequest));
 }
 
-bool thread::waitStatusFileRcved(QString& errorMessage, unsigned long mseconds)
-{
-    conditionMutex.lock();
-    bool noTimeOut = true;
-    while(noTimeOut == true && statusFileRcved == false){
-        //超时了会返回false
-        noTimeOut = statusFileRcvedConditon.wait(&conditionMutex, mseconds);
-    }
-    statusFileRcved = false;
-    conditionMutex.unlock();
-    if(noTimeOut == false) errorMessage = QString("等待状态文件超时");
-    return noTimeOut;
-}
-
-void thread::mainThreadExited(){
-    QMutexLocker locker(&mutex);
-    mainThreadExitedOrNot = true;
-}

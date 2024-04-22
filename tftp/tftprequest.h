@@ -2,18 +2,21 @@
 #define TFTPREQUEST_H
 
 #include <QObject>
-#include <QMutex>
-#include "tftp.h"
-#include "dir.h"
-
 class TftpRequest
 {
 public:
-    TftpRequest(){
-        mutex.lock();
+    TftpRequest(){}
+    TftpRequest(QByteArray request, quint16 port):
+        request(request), port(port)
+    {
+
+    }
+    TftpRequest(TftpRequest&& tftpRequest)noexcept{
+        request = std::move(tftpRequest.request);
+        port = std::move(tftpRequest.port);
     }
     ~TftpRequest(){
-        mutex.unlock();
+
     }
     QByteArray getRequest(){
         return request;
@@ -21,15 +24,9 @@ public:
     quint16 getPort(){
         return port;
     }
-    void setRequestAndPort(QByteArray request, quint16 port){
-        this->request = request;
-        this->port = port;
-    }
 private:
     QByteArray request;
     quint16 port;
-public:
-    mutable QMutex mutex;
 };
 
 #endif // TFTPREQUEST_H

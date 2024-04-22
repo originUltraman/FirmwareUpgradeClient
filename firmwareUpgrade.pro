@@ -2,7 +2,7 @@ QT -= gui
 QT += core
 QT += network
 
-CONFIG += c++11 console
+CONFIG += c++20 console
 CONFIG -= app_bundle
 
 # The following define makes your compiler emit warnings if you use
@@ -21,9 +21,12 @@ SOURCES += \
         firmwareupgrade.cpp \
         main.cpp \
         protocal/utility.cpp \
+        singleton/singleton.cpp \
         tftp/tftp.cpp \
         thread/findthread.cpp \
         thread/menuthread.cpp \
+        thread/statusfilerecvthread.cpp \
+        thread/tftpserverthread.cpp \
         thread/thread.cpp \
         thread/uploadthread.cpp
 
@@ -31,6 +34,11 @@ SOURCES += \
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+DEFINES += SPDLOG_COMPILED_LIB
+INCLUDEPATH += $$PWD/spdlog/include
+DEPENDPATH += $$PWD/spdlog/include
+PRE_TARGETDEPS += $$PWD/spdlog/build/libspdlog.a
+LIBS += -L$$PWD/spdlog/build/ -lspdlog
 
 HEADERS += \
     crc/crc.h \
@@ -39,10 +47,13 @@ HEADERS += \
     global.h \
     protocal/protocal.h \
     protocal/utility.h \
+    safequeue/safequeue.h \
     singleton/singleton.h \
     tftp/tftp.h \
     tftp/tftprequest.h \
     thread/findthread.h \
     thread/menuthread.h \
+    thread/statusfilerecvthread.h \
+    thread/tftpserverthread.h \
     thread/thread.h \
     thread/uploadthread.h

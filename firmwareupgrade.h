@@ -8,11 +8,13 @@
 #include <QThreadPool>
 class MenuThread;
 class FindThread;
+class TftpServerThread;
 class FirmwareUpgrade : public QObject
 {
     Q_OBJECT
 public:
     FirmwareUpgrade();
+    ~FirmwareUpgrade();
     /*
      * 根据输入参数的不同执行相关的逻辑
      *
@@ -49,12 +51,13 @@ public:
     }
 private:
     std::shared_ptr<QTimer> timer = nullptr;
+    std::shared_ptr<TftpServerThread> tftpServerThread = nullptr;
     std::shared_ptr<MenuThread> menuThread = nullptr;
     //std::shared_ptr<FindThread> findThread = nullptr;
     QThreadPool pool;
 
 private slots:
-    void onRecvdMenuOp(int op, std::initializer_list<std::string>);
+    void onRecvdMenuOp(int op, const std::vector<std::string>& args);
 };
 
 #endif // FIRMWAREUPGRADE_H
