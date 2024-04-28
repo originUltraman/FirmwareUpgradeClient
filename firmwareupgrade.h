@@ -6,9 +6,14 @@
 #include <QTimer>
 #include <memory>
 #include <QThreadPool>
+#include "device/device.h"
 class MenuThread;
 class FindThread;
 class TftpServerThread;
+class StatusFileRcvThread;
+namespace spdlog{
+class logger;
+}
 class FirmwareUpgrade : public QObject
 {
     Q_OBJECT
@@ -51,11 +56,14 @@ public:
     }
 private:
     std::shared_ptr<QTimer> timer = nullptr;
-    std::shared_ptr<TftpServerThread> tftpServerThread = nullptr;
-    std::shared_ptr<MenuThread> menuThread = nullptr;
+    TftpServerThread* tftpServerThread = nullptr;
+    MenuThread* menuThread = nullptr;
+    StatusFileRcvThread* statusFileRcvThread = nullptr;
+    std::vector<Device> devices;
     //std::shared_ptr<FindThread> findThread = nullptr;
     QThreadPool pool;
-
+    spdlog::logger* logger = nullptr;
+    FindThread* findThread = nullptr;
 private slots:
     void onRecvdMenuOp(int op, const std::vector<std::string>& args);
 };

@@ -28,8 +28,6 @@ private:
     unsigned int fileSentCnt = 0;
     unsigned int waitTimes = 0;
     File_LUS LUS;
-    std::condition_variable cv;
-    std::mutex m;
     void makeLUR();
     void makeLUH();
 public slots:

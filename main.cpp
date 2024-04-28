@@ -9,14 +9,12 @@
 #include "spdlog/spdlog.h"
 unsigned short blksize_default = 512;
 unsigned short timeout_default = 2;
-unsigned short maxRetransmit_default = 5;
-
+unsigned short retry_default = 5;
+unsigned short dlpRetry_default = 2;
 
 int main(int argc, char *argv[])
 {
-    //std::cout << "hello world" << std::endl;
     QCoreApplication a(argc, argv);
     FirmwareUpgrade fupgrade;
-    //std::cout << "hello world" << std::endl;
     return a.exec();
 }

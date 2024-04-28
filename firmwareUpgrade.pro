@@ -50,6 +50,7 @@ HEADERS += \
     safequeue/safequeue.h \
     singleton/singleton.h \
     tftp/tftp.h \
+    tftp/tftpoack.h \
     tftp/tftprequest.h \
     thread/findthread.h \
     thread/menuthread.h \

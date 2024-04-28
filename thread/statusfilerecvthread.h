@@ -1,22 +1,30 @@
 #ifndef STATUSFILERCVTHREAD_H
 #define STATUSFILERCVTHREAD_H
 #include <QObject>
-#include "thread/thread.h"
+#include <unordered_map>
+#include <condition_variable>
+#include <mutex>
 #include "thread/uploadthread.h"
 #include "tftp/tftprequest.h"
-
-class StatusFileRcvThread : public thread{
+namespace spdlog {
+class logger;
+}
+class StatusFileRcvThread : public QThread{
     Q_OBJECT
 public:
-    StatusFileRcvThread(const TftpRequest tftpRequest, const Device* device = nullptr, QObject* parent = nullptr):
-    thread(device, parent)
-    {
-
-    }
+    StatusFileRcvThread(QObject* parent = nullptr);
     void run();
+    void addTftpRequest(TftpRequest& tftpRequest);
+    void addThread(const std::string&, class thread*);
+    void threadExit();
 
-signals:
-    void statusFileRcvFinishedSignal();
+private:
+    std::unordered_map<std::string, class thread*> hostToThread;
+    spdlog::logger& logger;
+    SafeQueue<TftpRequest> tftpRequests;
+    std::mutex m;
+    std::condition_variable cv;
+    bool exitFlag = false;
 };
 
 #endif // STATUSFILERCVTHREAD_H

@@ -11,8 +11,7 @@ spdlog::logger& Singleton<spdlog::logger>::Instance(){
         auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>("logs/log.txt", max_size, max_files);
         file_sink->set_level(spdlog::level::trace);
         file_sink->set_pattern("[%Y-%m-%d %H:%M:%S][process:%P][thread: %t][%s:%#][%l][%n], %v");
-        instancePtr.reset(new spdlog::logger("logger", { console_sink, file_sink }));
-
+        instancePtr = new spdlog::logger("logger", { console_sink, file_sink });
         });
     return *instancePtr;
 }

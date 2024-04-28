@@ -1,18 +1,24 @@
 #include "tftpserverthread.h"
 #include "thread/thread.h"
 #include "thread/statusfilerecvthread.h"
+#include "tftp/tftprequest.h"
+#include "singleton/singleton.h"
 #include <QEventLoop>
 
-TftpServerThread::TftpServerThread(){
-
+TftpServerThread::TftpServerThread():logger(Singleton<spdlog::logger>::Instance()){
+    moveToThread(this);
 }
 
 void TftpServerThread::run()
 {
-    QEventLoop eventLoop;
     uSock = std::make_shared<QUdpSocket>();
+    if(uSock->bind(QHostAddress::AnyIPv4, TFTP_SERVER_PORT, QUdpSocket::ShareAddress) == false){
+        logger.error("PORT {} ALREADY IN USE", TFTP_SERVER_PORT);
+        return;
+    }
+    logger.info("tftp server init success");
     connect(uSock.get(), &QUdpSocket::readyRead, this, &TftpServerThread::onUSockReadyRead);
-    eventLoop.exec();
+    exec();
 }
 
 void TftpServerThread::addThread(const std::string &host, class thread* thread_)
@@ -25,22 +31,30 @@ void TftpServerThread::removeThread(const std::string &host)
     hostToThread.erase(host);
 }
 
+
+
 void TftpServerThread::onUSockReadyRead()
 {
     while(uSock->hasPendingDatagrams()){
-        QHostAddress remote;
+        QHostAddress host;
         quint16 port;
         QByteArray datagram;
-        QString fileName;
         datagram.resize(uSock->pendingDatagramSize());
-        fileName = datagram.mid(2).split('\0').at(0);
-        uSock->readDatagram(datagram.data(), datagram.size(), &remote, &port);
-        TftpRequest tftpRequest(datagram, port);
-        if(hostToThread.count(remote.toString().toStdString())){
-            hostToThread[remote.toString().toStdString()]->addTftpRequest(std::move(tftpRequest));
+        uSock->readDatagram(datagram.data(), datagram.size(), &host, &port);
+        TftpRequest tftpRequest(datagram.data(), datagram.size(), host.toString().toStdString(), port);
+        logger.info(fmt::format("request file name is {}", tftpRequest.getFileName()));
+
+        if(tftpRequest.getFileName().find(".LUS") != std::string::npos || tftpRequest.getFileName().find(".LUS") != std::string::npos){
+            logger.info("LUS");
+            Singleton<StatusFileRcvThread>::Instance().addTftpRequest(tftpRequest);
+            logger.info("filename{} host{} port{} blksize{} timeout{} retry{}", tftpRequest.getFileName(), tftpRequest.getHost(),
+                        tftpRequest.getPort(), tftpRequest.getBlksize(), tftpRequest.getTimeout(), tftpRequest.getRetry());
         }
-        else if(fileName.endsWith(".LUS") || fileName.endsWith(".LNS") || fileName.endsWith(".LCS")){
-            //class thread* statusFileRcvThread = new StatusFileRcvThread();
+        else{
+            logger.info("no LUS");
+            if(hostToThread.count(host.toString().toStdString())){
+                hostToThread[host.toString().toStdString()]->addTftpRequest(tftpRequest);
+            }
         }
     }
 }

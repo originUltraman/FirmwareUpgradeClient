@@ -1,21 +1,69 @@
 #ifndef DEVICE_H
 #define DEVICE_H
-#include<QString>
+#include<string>
+#include<iostream>
+#include"spdlog/fmt/bundled/core.h"
 class Device{
 private:
-    QString hostAddress;
-    QString name;
-    QString hardwareType;
-    QString positon;
-    QString literalName;
-    QString manufactureCode;
+    std::string hostAddress;
+    std::string name;
+    std::string hardwareType;
+    std::string positon;
+    std::string literalName;
+    std::string manufactureCode;
 public:
-    Device(QString hostAddress, QString name):hostAddress(hostAddress), name(name){}
-    Device(QString hostAddress, QString name, QString hardwareType, QString position, QString literalName, QString manufactureCode):hostAddress(hostAddress), name(name){
+    Device(std::string hostAddress, std::string name):hostAddress(hostAddress), name(name){}
+    Device(std::string hostAddress, std::string name, std::string hardwareType, std::string position, std::string literalName, std::string manufactureCode):hostAddress(hostAddress), name(name){
+        this->hostAddress = hostAddress;
+        this->name = name;
         this->hardwareType = hardwareType;
         this->positon = position;
         this->literalName = literalName;
         this->manufactureCode = manufactureCode;
+    }
+    Device(const Device& device)noexcept{
+        this->hostAddress = device.hostAddress;
+        this->name = device.name;
+        this->hardwareType = device.hardwareType;
+        this->positon = device.positon;
+        this->literalName = device.literalName;
+        this->manufactureCode = device.manufactureCode;
+    }
+
+    Device& operator=(const Device& device)noexcept{
+        if(this != &device){
+            this->hostAddress = device.hostAddress;
+            this->name = device.name;
+            this->hardwareType = device.hardwareType;
+            this->positon = device.positon;
+            this->literalName = device.literalName;
+            this->manufactureCode = device.manufactureCode;
+        }
+        return *this;
+    }
+
+    Device(Device&& device)noexcept{
+        if(this != &device){
+            this->hostAddress = std::move(device.hostAddress);
+            this->name = std::move(device.name);
+            this->hardwareType = std::move(device.hardwareType);
+            this->positon = std::move(device.positon);
+            this->literalName = std::move(device.literalName);
+            this->manufactureCode = std::move(device.manufactureCode);
+        }
+    }
+
+    Device& operator=(Device&& device)noexcept{
+        if(this != &device){
+            this->hostAddress = std::move(device.hostAddress);
+            this->name = std::move(device.name);
+            this->hardwareType = std::move(device.hardwareType);
+            this->positon = std::move(device.positon);
+            this->literalName = std::move(device.literalName);
+            this->manufactureCode = std::move(device.manufactureCode);
+        }
+        return *this;
+
     }
     /*****************************************************************
     * 函数名称： 小于符号运算符重载
@@ -50,11 +98,15 @@ public:
     * 参数说明： 参数说明
     * 返回值：   返回值说明
     ******************************************************************/
-    QString getHostAddress()const{return hostAddress;}
-    QString getName()const{return name;}
-    QString getHardwareType()const{return hardwareType;}
-    QString getPosition()const{return positon;}
-    QString getLiteralName()const{return literalName;}
-    QString getManufactureCode()const{return manufactureCode;}
+    std::string getHostAddress()const{return hostAddress;}
+    std::string getName()const{return name;}
+    std::string getHardwareType()const{return hardwareType;}
+    std::string getPosition()const{return positon;}
+    std::string getLiteralName()const{return literalName;}
+    std::string getManufactureCode()const{return manufactureCode;}
+
+    std::string toString()const{
+        return fmt::format("[host:{} name:{} hardwareType:{} position:{} literalName:{} manufactureCode:{}]", hostAddress, name, hardwareType, positon, literalName, manufactureCode);
+    }
 };
 #endif // DEVICE_H

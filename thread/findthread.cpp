@@ -7,38 +7,38 @@
 #include <condition_variable>
 //#include <format>
 #include <mutex>
+#include <QThread>
 #include "singleton/singleton.h"
-extern std::mutex menuThreadMutex;
-extern std::condition_variable menuThreadCv;
 
-FindThread::FindThread():
+
+FindThread::FindThread(QObject *parent):
+    QThread(parent),
     logger(&Singleton<spdlog::logger>::Instance())
 {
-
+    moveToThread(this);
 }
 
 FindThread::~FindThread()
 {
-    //std::cout << "findthread deconstructor" << std::endl;
+    uSock->deleteLater();
+    timer->deleteLater();
 }
 
 void FindThread::run()
 {
-    uSock = std::make_shared<QUdpSocket>();
-    uSock->bind(QHostAddress::AnyIPv4, FIND_PORT, QUdpSocket::ShareAddress);
+    qRegisterMetaType<std::vector<Device>>("std::vector<Device>");
+    uSock = new QUdpSocket();
+    if(uSock->bind(QHostAddress::AnyIPv4, FIND_PORT, QUdpSocket::ShareAddress) == false){
+        logger->info("bind error");
+        return;
+    }
     uSock->writeDatagram(makeFindRequest().data(), makeFindRequest().size(), QHostAddress("10.68.141.129"), FIND_PORT);
-    connect(uSock.get(), &QUdpSocket::readyRead, this, &FindThread::onFindResponseRecved);
-
-    timer = std::make_shared<QTimer>();
+    connect(uSock, &QUdpSocket::readyRead, this, &FindThread::onFindResponseRecved);
+    timer = new QTimer();
     timer->setInterval(3000);
-    QEventLoop eventLoop;
-    connect(timer.get(), &QTimer::timeout, this, [&eventLoop](){
-        std::unique_lock<std::mutex> ulock(menuThreadMutex);
-        menuThreadCv.notify_one();
-        eventLoop.quit();
-    });
+    connect(timer, &QTimer::timeout, this, &FindThread::onTimerTimeout);
     timer->start();
-    eventLoop.exec();
+    exec();
 }
 
 const QByteArray& FindThread::makeFindRequest()
@@ -49,6 +49,7 @@ const QByteArray& FindThread::makeFindRequest()
 
 void FindThread::onFindResponseRecved()
 {
+    //logger->info(QThread::currentThreadId());
     QByteArray datagram;
     QHostAddress remoteAddress;
     //让datagrama的大小为等待处理的数据包的大小，这样才能接收到完整的数据
@@ -83,15 +84,15 @@ void FindThread::onFindResponseRecved()
             }
         }
     }
-    std::string devInfoString = "[";
-    for(auto& deviceInfo: deviceInfo.toStdList()){
-        devInfoString += deviceInfo.toStdString() + " ";
-    }
-    devInfoString += "]";
-    logger->info("[{0} {1} {2} {3} {4} {5}]", deviceInfo[0].toStdString(),
+    devices.emplace_back(deviceInfo[0].toStdString(),
             deviceInfo[1].toStdString(), deviceInfo[2].toStdString(),
             deviceInfo[3].toStdString(), deviceInfo[4].toStdString(),
             deviceInfo[5].toStdString());
-    //logger->info(devInfoString);
-    //logger->log(deviceInfo.toStdList());
+}
+
+void FindThread::onTimerTimeout()
+{
+    timer->stop();
+    uSock->close();
+    emit findOperationFinished(std::move(devices));
 }

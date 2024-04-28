@@ -1,121 +1,161 @@
 #include "uploadthread.h"
-
+#include <functional>
+#include "spdlog/logger.h"
+extern unsigned short dlpRetry_default;
 void UploadThread::run()
 {
-//    auto debug = [&](std::string log){
-//        logger.info(log);
-//    };
-//    //auto debug = std::bind(&spdlog::logger::info, &this->logger);
-//    protocalFileSocket = std::make_shared<QUdpSocket>();
-//    if(protocalFileSocket->bind(PROTOCAL_FILE_PORT) == false){
-//        //debug(QString("端口号%1被占用").arg(PROTOCAL_FILE_PORT).toStdString());
-//        return;
-//    }
-//    QByteArray request;
-//    quint16 port;
-//    QString fileName;
-//    QFile LUR(QString("%1/%2.LUR").arg(dir.dirName(), device->getName()));
-//    QFile LUH(QString("%1/%2.LUH").arg(dir.dirName(), device->getName()));
-//    //bool flag = false;
-//    const unsigned short DLP_retry = 2;
-//    unsigned short tries = 0;
-//    QString errorMessage;
-//    while(status != END){
-//        //waitTimes = 0;
-//        switch (status) {
-//        case INITIALIZATION:
-//            while(!Tftp::get(protocalFileSocket.get(), dir.dirName(), QString("%1.LUI").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), TFTP_SERVER_PORT) &&
-//                  ++tries < DLP_retry + 1){
-//                emit(uploadStatusMessage(errorMessage));
-//            }
-//            if(tries >= DLP_retry + 1){
-//                status = ERROR_;
-//                errorMessage = QString("request LUI file failed");
-//                break;
-//            }
-//            tries = 0;
-//            debug("LUI发送完成");
-//            status = LIST_TRANSFER;
-//            break;
-//        case LIST_TRANSFER:{
-//            std::unique_lock<std::mutex> lock(m);
-//            TftpRequest tftpRequest;
-//            while(tftpRequests.dequeue(tftpRequest) == false){
-//                cv.wait(lock);
-//            }
-//            if(LUS.op_stat_code != 0x0001){
-//                break;
-//            }
-//            //当状态码为0x0001时表示设备端接受上传操作
-//            makeLUR();
-//            if(!LUR.exists()){
-//                errorMessage = QString("LUR文件创建失败");
-//                status = ERROR_;
-//                break;
-//            }
-//            if(!Tftp::put(protocalFileSocket.get(), dir.dirName(), QString("%1.LUR").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), TFTP_SERVER_PORT)){
-//                status = ERROR_;
-//                break;
-//            }
-//            debug("LUR文件上传完成");
-//            status = TRANSFER;
-//            break;
-//        }
-//        case TRANSFER:{
-//            if(tftpRequest->mutex.tryLock(13 * 1000) == false){
-//                status = ERROR_;
-//                errorMessage = QString("等待数据文件读请求超时");
-//                break;
-//            }
-//            request = tftpRequest->getRequest();
-//            port = tftpRequest->getPort();
-//            fileName = request.mid(2).split('\0').at(0);
-//            for(int i = 0; i < fileList.size(); ++i){
-//                if(fileList.at(i).contains(fileName)){
-//                    if(Tftp::handleGet(protocalFileSocket.get(), fileList.at(i).left(fileList.at(i).lastIndexOf('/')), fileName, &errorMessage, QHostAddress(device->getHostAddress()), port, request) == false){
-//                        debug("upload file " + fileName.toStdString() + " error");
-//                    }
-//                    else {
-//                        ++fileSentCnt;
-//                        debug(QString("文件%1上传完成").arg(fileName).toStdString());
-//                        emit(uploadRate(fileSentCnt * 100 / fileList.size(), true));
-//                    }
+    QUdpSocket* uSock = new QUdpSocket();
+    if(uSock->bind(PROTOCAL_FILE_PORT) == false){
+        logger.error("BIND PORT {} ALREADY IN USE", PROTOCAL_FILE_PORT);
+        return;
+    }
+    TftpRequest request;
+    QFile LUR(QString::fromStdString(fmt::format("{0}/{1}.LUR", dir.dirName().toStdString(), device->getName())));
+    QFile LUH(QString::fromStdString(fmt::format("{0}/{1}.LUH", dir.dirName().toStdString(), device->getName())));
+    unsigned short dlpTry = 0;
+    std::string errorMessage;
+    while(status != END){
+        switch (status) {
+        case INITIALIZATION:{
+            TftpRequest request(TftpRequest::RRQ, fmt::format("{0}.LUI", device->getName()), device->getHostAddress(), TFTP_SERVER_PORT);
+            while(!Tftp::get(uSock, request, errorMessage) && ++dlpTry < dlpRetry_default + 1){
+                logger.error(errorMessage);
+            }
+            if(dlpTry >= dlpRetry_default + 1){
+                status = ERROR_;
+                errorMessage = fmt::format("REQUEST FILE {}.LUI FAILED", device->getName());
+                break;
+            }
+            dlpTry = 0;
+            logger.info("get LUI success");
+            status = LIST_TRANSFER;
+            break;
+        }
+        case LIST_TRANSFER:{
+            while(LUS.op_stat_code != 0x0001){
+                std::unique_lock<std::mutex> lock(m);
+                cv.wait(lock);
+            }
+            //当状态码为0x0001时表示设备端接受上传操作
+            QFile LUR(QString::fromStdString(fmt::format("{0}/{1}.LUR", dir.dirName().toStdString(), device->getName())));
+            makeLUR();
+            if(!LUR.exists()){
+                errorMessage = fmt::format("CREATE {}.LUR FAILED", device->getName());
+                status = ERROR_;
+                break;
+            }
+            TftpRequest request(TftpRequest::WRQ, fmt::format("{}.LUR", device->getName()), device->getHostAddress(), TFTP_SERVER_PORT);
+            while(!Tftp::put(uSock, request, errorMessage, dir.dirName().toStdString()) && ++dlpTry < dlpRetry_default + 1){
+                logger.error(errorMessage);
+            }
+            if(dlpTry >= dlpRetry_default + 1){
+                status = ERROR_;
+                errorMessage = fmt::format("PUT FILE {}.LUR FAILED", device->getName());
+                break;
+            }
+            dlpTry = 0;
+            logger.info(fmt::format("put {}.LUR success", device->getName()));
+            status = TRANSFER;
+            break;
+        }
+        case TRANSFER:{
+//            while(tftpRequests.empty() || LUS.op_stat_code == 0x0002){
+//                std::unique_lock<std::mutex> ulock(m);
+//                auto cv_status = cv.wait_for(ulock, std::chrono::seconds(13));
+//                logger.info("LUS.op_stat_code = {}", LUS.op_stat_code);
+//                if(cv_status == std::cv_status::timeout){
+//                    errorMessage = "TIME OUT FOR DATA FILE READ REQUEST";
+//                    status = ERROR_;
 //                    break;
 //                }
 //            }
-//            //等待状态文件的指示，判断操作还在进行，是出现错误，还是完成
-//            std::unique_lock<std::mutex> lock(m);
-//            do{
-//                cv.wait(lock);
-//            }while(flag == false);
-//            flag = false;
-//            switch(LUS.op_stat_code){
-//            case 0x0002:
-//                break;
-//            case 0x0003:
-//                status = END;
-//                break;
-//            default:
-//                status = END;
+//            if(status == ERROR_) break;
+//            if(LUS.op_stat_code != 0x0002){
+//                switch (LUS.op_stat_code) {
+//                case 0x0003:
+//                    status = END;
+//                    break;
+//                default:
+//                    status = ERROR_;
+//                    break;
+//                }
 //                break;
 //            }
-//            break;
-//        }
-//        case ERROR_:
-//            //TODO----执行Abort操作
-//            debug(errorMessage.toStdString());
-//            status = END;
-//            break;
-//        default:
-//            break;
-//        }
-//    }
-//    debug("upload end");
-//    protocalFileSocket->close();
+//            if(LUS.op_stat_code != 0x0002){
+//                switch (LUS.op_stat_code) {
+//                case 0x0003:
+//                    status = END;
+//                    break;
+//                default:
+//                    status = ERROR_;
+//                    break;
+//                }
+//                break;
+//            }
+            while(tftpRequests.empty()){
+                std::unique_lock<std::mutex> ulock(m);
+                auto cv_status = cv.wait_for(ulock, std::chrono::seconds(13));
+                if(cv_status == std::cv_status::timeout){
+                    errorMessage = "TIME OUT FOR DATA FILE READ REQUEST";
+                    status = ERROR_;
+                    break;
+                }
+                if(LUS.op_stat_code != 0x0002) break;
+                logger.info("LUS.op_stat_code = {}", LUS.op_stat_code);
+            }
+            if(status == ERROR_) break;
+            if(LUS.op_stat_code != 0x0002){
+                switch (LUS.op_stat_code) {
+                case 0x0003:
+                    status = END;
+                    break;
+                default:
+                    status = ERROR_;
+                    break;
+                }
+                break;
+            }
+            TftpRequest request;
+            tftpRequests.dequeue(request);
+            logger.info("before handleget");
+            while(!Tftp::handleGet(uSock, request, errorMessage) && ++dlpTry < dlpRetry_default + 1){
+                logger.error(errorMessage);
+            }
+            if(dlpTry >= dlpRetry_default + 1){
+                status = ERROR_;
+                errorMessage = fmt::format("HANDLE GET FILE {} FAILED", request.getFileName());
+                break;
+            }
+            logger.info(fmt::format("handle get file {} success", request.getFileName()));
+            std::unique_lock<std::mutex> lock(m);
+            cv.wait(lock);
+            switch(LUS.op_stat_code){
+            case 0x0002:
+                break;
+            case 0x0003:
+                status = END;
+                break;
+            default:
+                status = END;
+                break;
+            }
+            break;
+        }
+        case ERROR_:
+            //TODO----执行Abort操作
+            logger.info("ERROR {}", errorMessage);
+            status = END;
+            break;
+        default:
+            break;
+        }
+    }
+    uSock->close();
+    logger.info("uoload finish");
 }
 
 void UploadThread::makeLUR(){
-    QFile LUR(QString("%1/%2.LUR").arg(dir.dirName(), device->getName()));
+    QFile LUR(QString("%1/%2.LUR").arg(dir.dirName(), QString::fromStdString(device->getName())));
     //LUR.open(QIODevice::WriteOnly);
     File_LUR LUR_struct;
     memcpy(LUR_struct.Pro_ver, Protocol_ver, 2);
@@ -161,7 +201,7 @@ void UploadThread::makeLUR(){
 
 void UploadThread::makeLUH()
 {
-    QFile LUH(QString("%1/%2.LUH").arg(dir.dirName(), device->getName()));
+    QFile LUH(QString("%1/%2.LUH").arg(dir.dirName(), QString::fromStdString(device->getName())));
     LUH.open(QIODevice::ReadWrite | QIODevice::Truncate);
     File_LUH LUH_struct;
     int i = 0;
@@ -269,7 +309,7 @@ void UploadThread::makeLUH()
 void UploadThread::parseStatusFile()
 {
     free(LUS.hfiles);
-    QFile fLUS(QString("%1/%2.LUS").arg(dir.dirName()).arg(device->getName()));
+    QFile fLUS(QString("%1.LUS").arg(QString::fromStdString(device->getName())));
     if(fLUS.open(QIODevice::ReadOnly) == false){
         return;
     }
@@ -280,7 +320,6 @@ void UploadThread::parseStatusFile()
 #else
         in.setByteOrder(QDataStream::LittleEndian);
 #endif
-
     in >> LUS.file_len;
     in.readRawData(LUS.Pro_ver, 2);
     in >> LUS.op_stat_code;
@@ -306,11 +345,10 @@ void UploadThread::parseStatusFile()
 //        qDebug() << LUS.hfiles[i].Hfile_name_len << LUS.hfiles[i].Hfile_name << LUS.hfiles[i].load_part_num_name_len << LUS.hfiles[i].load_part_num_name
 //                 << LUS.hfiles[i].load_ratio << LUS.hfiles[i].load_stat << LUS.hfiles[i].load_stat_des_len << LUS.hfiles[i].load_stat_des;
     }
+    logger.info("in parseStatusFile() LUS.op_stat_code = {}", LUS.op_stat_code);
     fLUS.close();
     std::unique_lock<std::mutex> lock(m);
-    //flag = true;
     cv.notify_one();
-    emit(parseStatusFileFinished(LUS));
     return;
 }
 

@@ -1,44 +1,41 @@
 #ifndef TFTP_H
 #define TFTP_H
-#include<QObject>
-#include<QFile>
-#include<QUdpSocket>
-#include "dir.h"
-//#define TFTP_NOT_LAST_DATA_LEN 512
-//#define MAX_RETRANS_TIMES 20
-//#define WAIT_TIME_MS 2000
+//#include"tftp/tftprequest.h"
+#include<string>
+class QUdpSocket;
+class TftpRequest;
+class TftpOAck;
 
 class Tftp
 {
 public:
     Tftp();
     enum TftpPacketType{RRQ = 1, WRQ, DATA, ACK, ERROR, OACK, UNDEFINED};
-    //static bool sendFile(QUdpSocket *uSock, QString fileName, QString* errorMessage, bool* mainThreadExitedOrNot, enum TftpMode tftpMode = RRQ);
-    //static bool sendFile_GBN(QUdpSocket *uSock, QString fileName, QString* errorMessage, bool* mainThreadExitedOrNot, enum TftpMode tftpMode = RRQ);
-    //static bool receiveFile(QUdpSocket *uSock, QString fileName, QString* errorMessage, bool* mainThreadExitedOrNot, enum TftpMode tftpMode = RRQ);
+    static void parseOACK(char* buf, unsigned short len);
+
+    static unsigned short getBlockNo(char* buf, unsigned short len);
+
+    static bool put(QUdpSocket* uSock, const TftpRequest& request, std::string& errorMessage, std::string path = ".");
+    static bool get(QUdpSocket* uSock, const TftpRequest& request, std::string& errorMessage, std::string path = ".");
+    static bool handlePut(QUdpSocket* uSock, const TftpRequest& request, std::string& errorMessage, const std::string path = ".");
+    static bool handleGet(QUdpSocket* uSock, const TftpRequest& request, std::string& errorMessage, const std::string path = ".");
+
+    static bool download(QUdpSocket* uSock, const std::string& absolutePath, const std::string& host, const unsigned short port, std::string& errorMessage, const TftpOAck& oAck, char* lastPacket, unsigned short lastPacketLen);
+    static bool upload(QUdpSocket* uSock, const std::string& absolutePath, const std::string& host, const unsigned short port, std::string& errorMessage, const TftpOAck& oAck);
+
+    static int makeTftpRWRequest(const TftpRequest& tftpRequest, char* buf);
+    static int makeTftpData(char buf[], int len, unsigned short block);
+    static int makeTftpAck(unsigned short ack, char* buf);
+    static int makeTftpError(unsigned short errorCode, std::string errorMessage);
+    static int makeTftpOAck(const TftpOAck& oAck, char* buf);
 
 
-    static void parseOACK(QByteArray &oackData);
-    static bool put(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, quint16 port);
-    static bool get(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, quint16 port);
-    static bool handlePut(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, QByteArray writeRequest);
-    static bool handleGet(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, QByteArray readRequest);
-    static bool download(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, unsigned short blksize, unsigned short timeout, unsigned short maxRetransmit,QByteArray& lastPacket);
-    static bool upload(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, unsigned short blksize, unsigned short timeout, unsigned short maxRetransmit);
+    static int makeTftpAbort(unsigned short statusCode);
 
-    static QByteArray makeTftpData(char data[], int len, quint16 block);
-    static char* makeTftpData(char data[], quint16 block);
-    static QByteArray makeTftpReadRequest(QString fileName, quint16 valueOfBlockSize, quint16 valueOfTimeOut, quint16 maxRetransmit, QString mode = "octet");
-    static QByteArray makeTftpWriteRequest(QString fileName, quint16 valueOfBlockSize, quint16 valueOfTimeOut, quint16 maxRetransmit, QString mode = "octet");
-    static QByteArray makeTftpAck(quint16 block);
-    static QByteArray makeTftpOAck(std::initializer_list<std::pair<std::string, std::string>> options);
-    static QByteArray makeTftpError(quint16 errorCode, QString errorMessage);
-    static QByteArray makeTftpAbort(unsigned short statusCode);
-
-    static TftpPacketType getTftpPacketType(const QByteArray& tftpPacket);
-    static bool checkBlockNo(const QByteArray& tftpPacket, unsigned short No);
-    static bool checkAckNo(const QByteArray& tftpPacket, unsigned short No);
-    static unsigned short getNo(const QByteArray& tftpPacket);
+    //static TftpPacketType getTftpPacketType(const QByteArray& tftpPacket);
+    //static bool checkBlockNo(const QByteArray& tftpPacket, unsigned short No);
+    //static bool checkAckNo(const QByteArray& tftpPacket, unsigned short No);
+    //static unsigned short getNo(const QByteArray& tftpPacket);
 };
 #endif // TFTP_H
 

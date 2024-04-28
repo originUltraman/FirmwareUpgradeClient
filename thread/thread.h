@@ -14,10 +14,13 @@
 #include "tftp/tftprequest.h"
 #include "protocal/protocal.h"
 #include "crc/crc.h"
-#include "singleton/singleton.h"
 #include "safequeue/safequeue.h"
 #include "global.h"
+#include "spdlog/common.h"
 
+namespace spdlog {
+class logger;
+}
 #define TFTP_READ_OP_CODE 1
 #define TFTP_WRITE_OP_CODE 2
 class thread : public QObject, public QRunnable
@@ -29,26 +32,25 @@ public:
     const QHostAddress getHostAddress() const;
     TftpRequest* getTftpRequest() const;
     const Device *getDevice() const;
-    void addTftpRequest(TftpRequest&& tftpRequest);
+    void addTftpRequest(const TftpRequest& tftpRequest);
+    virtual void parseStatusFile() = 0;
 protected:
+    QDir dir;
     const Device* device;
-    std::shared_ptr<QUdpSocket> protocalFileSocket;
-    std::shared_ptr<QUdpSocket> statusFileSocket;
     spdlog::logger& logger;
     SafeQueue<TftpRequest> tftpRequests;
 
     QString statusMessage;
     QString errorMessage;
     quint16 statusCode;
+    std::condition_variable cv;
+    std::mutex m;
 
-    QDir dir;
     void waitStatusFileRcved();
     bool waitStatusFileRcved(QString& errorMessage, unsigned long mseconds = ULONG_MAX);
 signals:
     void threadFinish(bool status, QString info);
-    void mainThreadExitedSignal();
-public slots:
-    virtual void parseStatusFile() = 0;
+    void mainThreadExitedSignal(); 
 };
 
 

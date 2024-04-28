@@ -13,6 +13,10 @@ public:
     void run();
 private:
     spdlog::logger& logger;
+    std::function<void(std::string)> info;
+    std::function<void(std::string)> debug;
+    std::function<void(std::string)> error;
+    std::function<void()>flush;
 signals:
     void sendMenuOp(int, const std::vector<std::string>&);
 };

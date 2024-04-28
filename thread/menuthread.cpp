@@ -9,12 +9,15 @@ std::condition_variable menuThreadCv;
 MenuThread::MenuThread():
     logger(Singleton<spdlog::logger>::Instance())
 {
-
+    info = std::bind(&spdlog::logger::info<>, &logger, std::placeholders::_1);
+    debug = std::bind(&spdlog::logger::debug<>, &logger, std::placeholders::_1);
+    error = std::bind(&spdlog::logger::error<>, &logger, std::placeholders::_1);
+    flush = std::bind(&spdlog::logger::flush, &logger);
 }
 
 void MenuThread::printMenu() const
 {
-    logger.info("-------------------------------------\n"
+    info("-------------------------------------\n"
                 "Welcome to FirmwareUpgrade System.\n"
                 "1. Find\n"
                 "2. Upload\n"
@@ -22,7 +25,7 @@ void MenuThread::printMenu() const
                 "4. Exit\n"
                 "-------------------------------------\n"
                 "Please input > ");
-    logger.flush();
+    flush();
 }
 
 void MenuThread::run()
@@ -35,19 +38,16 @@ void MenuThread::run()
         switch (op) {
         case FIND:{
             emit sendMenuOp(op, args);
-            logger.info("wait for results");
             std::unique_lock<std::mutex> ulock(menuThreadMutex);
             menuThreadCv.wait(ulock);
-            logger.info("FIND operation finish");
             break;
         }
         case UPLOAD:{
-            logger.info("Please input your device ip");
-            std::string ip;
-            logger.info("Please input > ");
-            std::cin >> ip;
-            args.emplace_back(std::move(ip));
-            logger.info("Plearse input upload files(e.g. file1 file2): ");
+            info("Please input your device id");
+            std::string id;
+            std::cin >> id;
+            args.emplace_back(id);
+            info("Plearse input upload files(e.g. file1 file2): ");
             while(true){
                 std::string file;
                 std::cin >> file;

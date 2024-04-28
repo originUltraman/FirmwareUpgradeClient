@@ -20,7 +20,7 @@ public:
     static T& Instance()
     {
         std::call_once(initInstanceFlag, [&](){
-            instancePtr.reset(new T());
+            instancePtr = new T();
         });
         return *instancePtr;
     }
@@ -30,12 +30,12 @@ protected:
     virtual ~Singleton() = default;
 
 private:
-    static std::unique_ptr<T> instancePtr;
+    static T* instancePtr;
     static std::once_flag initInstanceFlag;
 };
 
 template <typename T>
-std::unique_ptr<T> Singleton<T>::instancePtr;
+T* Singleton<T>::instancePtr;
 
 template <typename T>
 std::once_flag Singleton<T>::initInstanceFlag;
