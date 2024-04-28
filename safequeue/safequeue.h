@@ -20,6 +20,11 @@ public:
 
     void enqueue(const T& t){
         std::unique_lock<std::mutex> lock(m_mutex);
+        m_queue.emplace(t);
+    }
+
+    void enqueue(T&& t){
+        std::unique_lock<std::mutex> lock(m_mutex);
         m_queue.emplace(std::move(t));
     }
 
