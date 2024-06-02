@@ -28,7 +28,7 @@ void StatusFileRcvThread::run()
             std::unique_lock<std::mutex> ulock(m);
             cv.wait(ulock);
         }
-        logger.info("statusFileThread listened");
+        //logger.info("statusFileThread listened");
         //const unsigned short DLP_retry = DLP
         while(!Tftp::handlePut(uSock, request, errorMessage) && ++dlpTry < dlpRetry_default){
 
@@ -38,8 +38,10 @@ void StatusFileRcvThread::run()
         }
         else{
             if(hostToThread.count(request.getHost())){
-                logger.info("found in hostToThread");
-                hostToThread[request.getHost()]->parseStatusFile();
+                //logger.info("found in hostToThread");
+                if(!hostToThread[request.getHost()]->parseStatusFile(errorMessage)){
+                    logger.error(errorMessage);
+                }
             }
         }     
     }

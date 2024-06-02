@@ -40,20 +40,22 @@ void TftpServerThread::onUSockReadyRead()
         quint16 port;
         QByteArray datagram;
         datagram.resize(uSock->pendingDatagramSize());
+        //logger.info(datagram.size());
         uSock->readDatagram(datagram.data(), datagram.size(), &host, &port);
         TftpRequest tftpRequest(datagram.data(), datagram.size(), host.toString().toStdString(), port);
-        logger.info(fmt::format("request file name is {}", tftpRequest.getFileName()));
+        //logger.info(fmt::format("request file name is {}", tftpRequest.getFileName()));
 
-        if(tftpRequest.getFileName().find(".LUS") != std::string::npos || tftpRequest.getFileName().find(".LUS") != std::string::npos){
-            logger.info("LUS");
+        if(tftpRequest.getFileName().find(".LUS") != std::string::npos || tftpRequest.getFileName().find(".LNS") != std::string::npos){
             Singleton<StatusFileRcvThread>::Instance().addTftpRequest(tftpRequest);
-            logger.info("filename{} host{} port{} blksize{} timeout{} retry{}", tftpRequest.getFileName(), tftpRequest.getHost(),
-                        tftpRequest.getPort(), tftpRequest.getBlksize(), tftpRequest.getTimeout(), tftpRequest.getRetry());
+            //logger.info("filename{} host{} port{} blksize{} timeout{} retry{}", tftpRequest.getFileName(), tftpRequest.getHost(),
+                        //tftpRequest.getPort(), tftpRequest.getBlksize(), tftpRequest.getTimeout(), tftpRequest.getRetry());
         }
         else{
-            logger.info("no LUS");
             if(hostToThread.count(host.toString().toStdString())){
                 hostToThread[host.toString().toStdString()]->addTftpRequest(tftpRequest);
+            }
+            else{
+                logger.info("no found");
             }
         }
     }

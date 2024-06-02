@@ -40,5 +40,6 @@ void thread::addTftpRequest(const TftpRequest& tftpRequest)
     std::unique_lock<std::mutex> ul(m);
     tftpRequests.enqueue(tftpRequest);
     cv.notify_one();
+    //std::cout << device->getHostAddress() << std::endl;
 }
 

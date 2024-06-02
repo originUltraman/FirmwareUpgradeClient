@@ -2,10 +2,11 @@
 #define TFTP_H
 //#include"tftp/tftprequest.h"
 #include<string>
+#include<memory>
 class QUdpSocket;
 class TftpRequest;
 class TftpOAck;
-
+extern unsigned short dlpRetry_default;
 class Tftp
 {
 public:
@@ -23,6 +24,8 @@ public:
     static bool download(QUdpSocket* uSock, const std::string& absolutePath, const std::string& host, const unsigned short port, std::string& errorMessage, const TftpOAck& oAck, char* lastPacket, unsigned short lastPacketLen);
     static bool upload(QUdpSocket* uSock, const std::string& absolutePath, const std::string& host, const unsigned short port, std::string& errorMessage, const TftpOAck& oAck);
 
+    template<typename... Args>
+    std::pair<std::unique_ptr<char>, int> makeTftpPacket(const TftpPacketType, Args&&...);
     static int makeTftpRWRequest(const TftpRequest& tftpRequest, char* buf);
     static int makeTftpData(char buf[], int len, unsigned short block);
     static int makeTftpAck(unsigned short ack, char* buf);

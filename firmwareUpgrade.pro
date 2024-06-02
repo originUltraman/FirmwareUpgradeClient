@@ -23,6 +23,7 @@ SOURCES += \
         protocal/utility.cpp \
         singleton/singleton.cpp \
         tftp/tftp.cpp \
+        thread/downloadthread.cpp \
         thread/findthread.cpp \
         thread/menuthread.cpp \
         thread/statusfilerecvthread.cpp \
@@ -45,6 +46,7 @@ HEADERS += \
     device/device.h \
     firmwareupgrade.h \
     global.h \
+    httplib/httplib.h \
     protocal/protocal.h \
     protocal/utility.h \
     safequeue/safequeue.h \
@@ -52,6 +54,7 @@ HEADERS += \
     tftp/tftp.h \
     tftp/tftpoack.h \
     tftp/tftprequest.h \
+    thread/downloadthread.h \
     thread/findthread.h \
     thread/menuthread.h \
     thread/statusfilerecvthread.h \

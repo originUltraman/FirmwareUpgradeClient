@@ -1,7 +1,6 @@
 #include "uploadthread.h"
 #include <functional>
 #include "spdlog/logger.h"
-extern unsigned short dlpRetry_default;
 void UploadThread::run()
 {
     QUdpSocket* uSock = new QUdpSocket();
@@ -59,39 +58,7 @@ void UploadThread::run()
             break;
         }
         case TRANSFER:{
-//            while(tftpRequests.empty() || LUS.op_stat_code == 0x0002){
-//                std::unique_lock<std::mutex> ulock(m);
-//                auto cv_status = cv.wait_for(ulock, std::chrono::seconds(13));
-//                logger.info("LUS.op_stat_code = {}", LUS.op_stat_code);
-//                if(cv_status == std::cv_status::timeout){
-//                    errorMessage = "TIME OUT FOR DATA FILE READ REQUEST";
-//                    status = ERROR_;
-//                    break;
-//                }
-//            }
-//            if(status == ERROR_) break;
-//            if(LUS.op_stat_code != 0x0002){
-//                switch (LUS.op_stat_code) {
-//                case 0x0003:
-//                    status = END;
-//                    break;
-//                default:
-//                    status = ERROR_;
-//                    break;
-//                }
-//                break;
-//            }
-//            if(LUS.op_stat_code != 0x0002){
-//                switch (LUS.op_stat_code) {
-//                case 0x0003:
-//                    status = END;
-//                    break;
-//                default:
-//                    status = ERROR_;
-//                    break;
-//                }
-//                break;
-//            }
+
             while(tftpRequests.empty()){
                 std::unique_lock<std::mutex> ulock(m);
                 auto cv_status = cv.wait_for(ulock, std::chrono::seconds(13));
@@ -306,12 +273,13 @@ void UploadThread::makeLUH()
 }
 
 
-void UploadThread::parseStatusFile()
+bool UploadThread::parseStatusFile(std::string& errorMessage)
 {
     free(LUS.hfiles);
     QFile fLUS(QString("%1.LUS").arg(QString::fromStdString(device->getName())));
     if(fLUS.open(QIODevice::ReadOnly) == false){
-        return;
+        errorMessage = fmt::format("OPEN FILE {}.LUS ERROR", device->getName());
+        return false;
     }
     memset(&LUS, 0, sizeof(File_LUS));
     QDataStream in(&fLUS);
@@ -349,6 +317,6 @@ void UploadThread::parseStatusFile()
     fLUS.close();
     std::unique_lock<std::mutex> lock(m);
     cv.notify_one();
-    return;
+    return true;
 }
 

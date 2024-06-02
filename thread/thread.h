@@ -33,7 +33,7 @@ public:
     TftpRequest* getTftpRequest() const;
     const Device *getDevice() const;
     void addTftpRequest(const TftpRequest& tftpRequest);
-    virtual void parseStatusFile() = 0;
+    virtual bool parseStatusFile(std::string& errorMessage) = 0;
 protected:
     QDir dir;
     const Device* device;

@@ -2,6 +2,7 @@
 #define TFTPREQUEST_H
 #include<string>
 #include<cstring>
+#include<iostream>
 #include<algorithm>
 extern unsigned short blksize_default;
 extern unsigned short timeout_default;
@@ -20,6 +21,7 @@ public:
         opcode = (OpCode)data[1];
         //strcpy(fileName.c_str(), &data[2]);
         fileName = std::string(&data[2]);
+
 
         char target[64] = "blksize";
         const char* pos;

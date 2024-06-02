@@ -5,6 +5,7 @@
 #include "thread/menuthread.h"
 #include "thread/findthread.h"
 #include "thread/uploadthread.h"
+#include "thread/downloadthread.h"
 #include "thread/tftpserverthread.h"
 #include "thread/statusfilerecvthread.h"
 #include "singleton/singleton.h"
@@ -84,8 +85,20 @@ void FirmwareUpgrade::onRecvdMenuOp(int op, const std::vector<std::string>& args
         }
         break;
     }
-    case DOWNLOAD:
+    case DOWNLOAD:{
+        auto deviceId = atoi(args.at(0).data());
+        if(deviceId >= 1 && (uint)deviceId <= devices.size()){
+            DownloadThread* downloadThread = new DownloadThread(&devices[deviceId - 1], nullptr);
+            connect(menuThread, &MenuThread::downloadFiles, downloadThread, &DownloadThread::on_userOp_finished);
+            connect(downloadThread, &DownloadThread::parseLNLFinished, menuThread, &MenuThread::on_parseLNL_finished);
+
+            tftpServerThread->addThread(devices[deviceId - 1].getHostAddress(), downloadThread);
+            statusFileRcvThread->addThread(devices[deviceId - 1].getHostAddress(), downloadThread);
+            downloadThread->setAutoDelete(true);
+            pool.start(downloadThread);
+        }
         break;
+    }
     case EXIT:
         QCoreApplication::instance()->quit();
         break;

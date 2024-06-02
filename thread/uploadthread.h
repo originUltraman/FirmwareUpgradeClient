@@ -30,8 +30,10 @@ private:
     File_LUS LUS;
     void makeLUR();
     void makeLUH();
-public slots:
-    void parseStatusFile() override;
+
+    // thread interface
+public:
+    bool parseStatusFile(std::string& errorMessage) override;
 };
 
 #endif // UPLOADTHREAD_H

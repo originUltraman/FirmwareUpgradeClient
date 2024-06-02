@@ -290,3 +290,28 @@ int Tftp::makeTftpAbort(unsigned short statusCode)
 {
 
 }
+
+template<typename... Args>
+std::pair<std::unique_ptr<char>, int> Tftp::makeTftpPacket(const TftpPacketType type, Args&&... args)
+{
+    std::unique_ptr<char> data = nullptr;
+    int len = 0;
+    switch(type){
+    case RRQ:
+        len = makeTftpRWRequest(std::forward<Args>(args)..., data.get());
+        break;
+    case WRQ:
+        len = makeTftpRWRequest(std::forward<Args>(args)..., data.get());
+        break;
+    case DATA:
+        len = makeTftpData(std::forward<Args>(args)..., data.get());
+        break;
+    case ACK:
+        len = makeTftpAck(std::forward<Args>(args)..., data.get());
+        break;
+    default:
+        break;
+    }
+    //std::pair<std::unique_ptr<char>, int> p{data, len};
+    return std::make_pair(std::move(data), len);
+}
